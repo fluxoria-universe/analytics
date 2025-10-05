@@ -1,418 +1,278 @@
-# Flux-sight
+# Analytics - Uniswap V3 Flash Loan Tracker
 
-A GraphQL API application that indexes onchain data from DEX smart contracts, providing real-time analytics and insights for decentralized exchange activities.
+A Ponder-based analytics application that tracks and analyzes Uniswap V3 flash loan events on Ethereum mainnet. This project monitors flash loan activities across all Uniswap V3 pools and provides both SQL and GraphQL APIs for data access.
 
 ## Features
 
-- **Onchain Data Indexing**: Tracks events from DEX smart contracts using Ponder.sh
-- **GraphQL API**: Modern, type-safe API with comprehensive queries and mutations
-- **Authentication**: JWT-based authentication with API key support
-- **Real-time Performance**: Redis caching and optimized queries
-- **Multi-client Support**: Role-based access control for multiple clients
-- **Event Tracking**: Monitors PoolCreated, Initialize, Swap, ModifyPosition, and Collect events
+- **Real-time Event Tracking**: Monitors Uniswap V3 flash loan events across all pools
+- **Token Analytics**: Tracks borrowed and paid amounts for each token
+- **Dual API Access**: Provides both SQL and GraphQL endpoints for data querying
+- **Automatic Pool Discovery**: Uses Uniswap V3 Factory events to discover new pools automatically
 
-## Architecture
+## Project Structure
 
-### Technology Stack
+```
+analytics/
+├── abis/                          # Contract ABIs
+│   ├── UniswapV3FactoryAbi.ts    # Uniswap V3 Factory ABI
+│   └── UniswapV3PoolAbi.ts       # Uniswap V3 Pool ABI
+├── generated/                     # Generated files
+│   └── schema.graphql            # Generated GraphQL schema
+├── src/
+│   ├── api/
+│   │   └── index.ts              # API server configuration
+│   └── index.ts                  # Main event handlers
+├── ponder.config.ts              # Ponder configuration
+├── ponder.schema.ts              # Database schema definition
+└── package.json
+```
 
-- **Runtime**: Node.js with TypeScript
-- **API Framework**: Express.js with Apollo GraphQL Server
-- **Indexing**: Ponder.sh for Ethereum event indexing
-- **Database**: PostgreSQL with TimescaleDB extension
-- **Caching**: Redis for frequently accessed data
-- **Authentication**: JWT (RS256) with API key support
-- **Testing**: Jest with comprehensive test coverage
+## Data Model
 
-### Core Components
+The application tracks two main data types:
 
-- **Indexing Layer**: Ponder.sh functions for event processing
-- **API Layer**: GraphQL resolvers and Express middleware
-- **Service Layer**: JWT, API Key, Redis Cache, and TVL Calculator services
-- **Database Layer**: PostgreSQL with TimescaleDB for time-series data
-- **Security Layer**: Authentication, rate limiting, and input validation
+### Token Borrowed
+- `address`: Token contract address (primary key)
+- `amount`: Total amount borrowed (cumulative)
 
-## Quick Start
+### Token Paid
+- `address`: Token contract address (primary key)  
+- `amount`: Total amount paid back (cumulative)
 
-### Prerequisites
+## Prerequisites
 
-- Node.js 18+ 
-- PostgreSQL 14+ with TimescaleDB extension
-- Redis 6+
-- Docker and Docker Compose (optional)
+- Node.js >= 18.14
+- Access to an Ethereum mainnet RPC endpoint
 
-### Installation
+## Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd analytics
-   ```
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd analytics
+```
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+2. Install dependencies:
+```bash
+npm install
+```
 
-3. **Set up environment variables**
-   ```bash
-   cp env.template .env
-   # Edit .env with your configuration
-   ```
+3. Set up environment variables:
+Create a `.env` file in the project root:
+```bash
+PONDER_RPC_URL_1=your_ethereum_rpc_url_here
+```
 
-4. **Start services with Docker Compose**
-   ```bash
-   docker-compose up -d
-   ```
+## Usage
 
-5. **Run database migrations**
-   ```bash
-   npm run db:migrate
-   ```
+### Development Mode
+Start the development server with hot reloading:
+```bash
+npm run dev
+```
 
-6. **Start the development server**
-   ```bash
-   npm run dev
-   ```
+### Production Mode
+Start the production server:
+```bash
+npm start
+```
 
-The GraphQL API will be available at `http://localhost:4000/graphql`
+### Database Management
+Access the database CLI:
+```bash
+npm run db
+```
+
+### Code Generation
+Generate TypeScript types and GraphQL schema:
+```bash
+npm run codegen
+```
+
+## API Endpoints
+
+The application provides multiple ways to access the data:
+
+### GraphQL API
+- **Endpoint**: `/graphql` or `/`
+- **Schema**: Auto-generated from your database schema
+- **Query Example**:
+```graphql
+query {
+  tokenBorrowed {
+    address
+    amount
+  }
+  tokenPaid {
+    address
+    amount
+  }
+}
+```
+
+### SQL API
+- **Endpoint**: `/sql/*`
+- **Usage**: Direct SQL queries against the database
+- **Example**: `/sql/select * from token_borrowed`
 
 ## Configuration
 
-### Environment Variables
+### Ponder Configuration (`ponder.config.ts`)
+- **Chain**: Ethereum mainnet (chain ID: 1)
+- **Start Block**: 12369621 (when Uniswap V3 Factory was deployed)
+- **Contract**: Monitors all Uniswap V3 pools created by the factory
 
-```env
-# Ethereum RPC
-ETHEREUM_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/your-key
-ETHEREUM_WS_URL=wss://eth-mainnet.g.alchemy.com/v2/your-key
-START_BLOCK=12369621
+### Database Schema (`ponder.schema.ts`)
+Defines the onchain tables for tracking token borrows and payments.
 
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/fluxsight
+## Event Handling
 
-# Redis
-REDIS_URL=redis://localhost:6379
-
-# JWT Keys (generated automatically)
-JWT_PRIVATE_KEY=./jwt_private.pem
-JWT_PUBLIC_KEY=./jwt_public.pem
-
-# Server
-PORT=4000
-NODE_ENV=development
-```
-
-### Ponder Configuration
-
-The application uses Ponder.sh for indexing Ethereum events. Configuration is in `ponder.config.ts`:
-
-```typescript
-export default createConfig({
-  networks: {
-    mainnet: {
-      chainId: 1,
-      rpc: process.env.ETHEREUM_RPC_URL,
-      pollingInterval: 1000,
-    },
-  },
-  contracts: {
-    UniswapV3Factory: {
-      network: 'mainnet',
-      address: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
-      abi: './abis/UniswapV3Factory.json',
-      startBlock: parseInt(process.env.START_BLOCK || '12369621'),
-    },
-    // ... other contracts
-  },
-});
-```
-
-## API Usage
-
-### Authentication
-
-The API supports two authentication methods:
-
-1. **JWT Tokens**: For web applications
-   ```bash
-   curl -H "Authorization: Bearer <jwt-token>" \
-        -H "Content-Type: application/json" \
-        -d '{"query": "{ health { status } }"}' \
-        http://localhost:4000/graphql
-   ```
-
-2. **API Keys**: For server-to-server communication
-   ```bash
-   curl -H "X-API-Key: <api-key>" \
-        -H "Content-Type: application/json" \
-        -d '{"query": "{ health { status } }"}' \
-        http://localhost:4000/graphql
-   ```
-
-### GraphQL Queries
-
-#### Health Check
-```graphql
-query {
-  health {
-    status
-    timestamp
-  }
-}
-```
-
-#### DEX Contracts
-```graphql
-query {
-  dexContracts(first: 10) {
-    edges {
-      node {
-        id
-        address
-        name
-        isActive
-        createdAt
-      }
-      cursor
-    }
-    pageInfo {
-      hasNextPage
-      endCursor
-    }
-  }
-}
-```
-
-#### Pool Data
-```graphql
-query {
-  pools(first: 20, filter: { dexContractId: "1" }) {
-    edges {
-      node {
-        id
-        address
-        token0
-        token1
-        fee
-        tickSpacing
-        createdAt
-      }
-    }
-  }
-}
-```
-
-#### Swap Events
-```graphql
-query {
-  swapEvents(
-    first: 50
-    filter: { poolId: "pool-1" }
-    timeRange: {
-      from: "2023-01-01T00:00:00Z"
-      to: "2023-01-31T23:59:59Z"
-    }
-  ) {
-    edges {
-      node {
-        id
-        poolId
-        sender
-        recipient
-        amount0
-        amount1
-        blockNumber
-        transactionHash
-        timestamp
-      }
-    }
-  }
-}
-```
-
-#### TVL Data
-```graphql
-query {
-  tvlRecords(first: 10) {
-    edges {
-      node {
-        poolId
-        totalAmount0
-        totalAmount1
-        calculatedAt
-      }
-    }
-  }
-}
-```
+The application listens for `Flash` events from Uniswap V3 pools and:
+1. Extracts token addresses (token0, token1) from the pool
+2. Records borrowed amounts in the `tokenBorrowed` table
+3. Records paid amounts in the `tokenPaid` table
+4. Updates cumulative amounts for existing tokens
 
 ## Development
 
-### Project Structure
-
-```
-src/
-├── graphql/
-│   ├── schema.graphql          # GraphQL schema definition
-│   └── resolvers/              # GraphQL resolvers
-├── indexing/                   # Ponder.sh indexing functions
-├── services/                   # Business logic services
-├── middleware/                 # Express middleware
-├── database/                   # Database connection and queries
-├── types/                      # TypeScript type definitions
-└── index.ts                    # Application entry point
-
-tests/
-├── unit/                       # Unit tests
-├── integration/                # Integration tests
-├── performance/                # Performance tests
-└── contract/                   # Contract tests
-
-specs/001-build-flux-sight/     # Feature specifications
-├── spec.md                     # Feature specification
-├── plan.md                     # Implementation plan
-├── tasks.md                    # Task breakdown
-├── data-model.md               # Database schema
-├── contracts/                  # API contracts
-└── quickstart.md               # Quick start guide
+### Type Checking
+```bash
+npm run typecheck
 ```
 
-### Available Scripts
+### Linting
+```bash
+npm run lint
+```
+
+## Adding New GraphQL Schema
+
+The GraphQL schema is automatically generated from your database schema defined in `ponder.schema.ts`. Here's how to add new tables and fields:
+
+### Step 1: Define New Tables in Schema
+Edit `ponder.schema.ts` to add new tables:
+
+```typescript
+import { onchainTable } from "ponder";
+
+export const tokenPaid = onchainTable("token_paid", (t) => ({
+  address: t.hex().primaryKey(),
+  amount: t.bigint().notNull(),
+}));
+
+export const tokenBorrowed = onchainTable("token_borrowed", (t) => ({
+  address: t.hex().primaryKey(),
+  amount: t.bigint().notNull(),
+}));
+
+// Add your new table
+export const yourNewTable = onchainTable("your_new_table", (t) => ({
+  id: t.hex().primaryKey(),
+  field1: t.string(),
+  field2: t.bigint(),
+  field3: t.boolean().notNull(),
+}));
+```
+
+### Step 2: Update Event Handlers
+Add event handlers in `src/index.ts` to populate your new table:
+
+```typescript
+ponder.on("YourContract:YourEvent", async ({ event, context }) => {
+  await context.db
+    .insert(schema.yourNewTable)
+    .values({
+      id: event.args.id,
+      field1: event.args.field1,
+      field2: event.args.field2,
+      field3: event.args.field3,
+    });
+});
+```
+
+### Step 3: Regenerate GraphQL Schema
+After making schema changes, regenerate the GraphQL schema:
 
 ```bash
-# Development
-npm run dev                     # Start development server
-npm run build                   # Build TypeScript
-npm run start                   # Start production server
-
-# Testing
-npm run test                    # Run all tests
-npm run test:watch              # Run tests in watch mode
-npm run test:coverage           # Run tests with coverage
-
-# Code Quality
-npm run lint                    # Run ESLint
-npm run lint:fix                # Fix ESLint issues
-npm run format                  # Format code with Prettier
-
-# Ponder
-npm run ponder:dev              # Start Ponder development
-npm run ponder:build            # Build Ponder
-npm run ponder:start            # Start Ponder production
-
-# Database
-npm run db:migrate              # Run database migrations
-npm run db:seed                 # Seed database with test data
+npm run codegen
 ```
 
-### Testing
+This will:
+- Update the generated GraphQL schema in `generated/schema.graphql`
+- Generate TypeScript types for your new tables
+- Create proper GraphQL queries, mutations, and filters
 
-The project follows Test-Driven Development (TDD) principles with comprehensive test coverage:
+### Step 4: Test Your New Schema
+You can test your new GraphQL schema using the built-in GraphQL playground:
 
-- **Unit Tests**: Test individual functions and classes
-- **Integration Tests**: Test component interactions
-- **Contract Tests**: Test GraphQL API contracts
-- **Performance Tests**: Test system performance and scalability
+1. Start the development server: `npm run dev`
+2. Navigate to `http://localhost:42069/graphql` (or your configured port)
+3. Use the GraphQL playground to test queries
 
-Run tests:
-```bash
-# All tests
-npm test
+### Example New Table Query
+After adding a new table, you can query it like this:
 
-# Specific test suites
-npm test -- --testPathPattern=unit
-npm test -- --testPathPattern=integration
-npm test -- --testPathPattern=performance
-
-# With coverage
-npm run test:coverage
+```graphql
+query {
+  yourNewTables(where: { field1: "some_value" }) {
+    items {
+      id
+      field1
+      field2
+      field3
+    }
+    totalCount
+  }
+}
 ```
 
-## Deployment
+### Schema Field Types
+Available field types in Ponder schema:
 
-### Docker Deployment
+- `t.string()` - String values
+- `t.hex()` - Hexadecimal values (addresses, hashes)
+- `t.bigint()` - Large integer values
+- `t.boolean()` - Boolean values
+- `t.int()` - Integer values
+- `t.json()` - JSON objects
+- `t.text()` - Long text values
 
-1. **Build the Docker image**
-   ```bash
-   docker build -t flux-sight .
-   ```
+### Adding Relationships
+To create relationships between tables, use foreign keys:
 
-2. **Run with Docker Compose**
-   ```bash
-   docker-compose up -d
-   ```
+```typescript
+export const parentTable = onchainTable("parent_table", (t) => ({
+  id: t.hex().primaryKey(),
+  name: t.string(),
+}));
 
-### Production Considerations
+export const childTable = onchainTable("child_table", (t) => ({
+  id: t.hex().primaryKey(),
+  parentId: t.hex().references("parent_table", "id"),
+  value: t.string(),
+}));
+```
 
-- Configure proper environment variables
-- Set up SSL/TLS certificates
-- Configure reverse proxy (nginx)
-- Set up monitoring and logging
-- Configure database backups
-- Set up Redis persistence
+## Monitoring
 
-## Monitoring and Observability
-
-### Health Checks
-
-The API provides health check endpoints:
-
-- `GET /health` - Basic health check
-- GraphQL `health` query - Detailed system status
-
-### Metrics
-
-Key metrics to monitor:
-
-- API response times
-- Database query performance
-- Redis cache hit rates
-- Indexing lag
-- Error rates
-- Memory usage
-
-### Logging
-
-The application uses structured logging with different levels:
-
-- `ERROR`: System errors and exceptions
-- `WARN`: Warning conditions
-- `INFO`: General information
-- `DEBUG`: Detailed debugging information
+The application tracks flash loan activities in real-time. You can monitor:
+- Total amounts borrowed per token
+- Total amounts paid back per token
+- Flash loan frequency and patterns
+- Token-specific analytics
 
 ## Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
-
-### Code Standards
-
-- Follow TypeScript best practices
-- Use ESLint and Prettier for code formatting
-- Write comprehensive tests
-- Document public APIs
-- Follow conventional commit messages
+4. Run tests and linting
+5. Submit a pull request
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is private and proprietary.
 
 ## Support
 
-For support and questions:
-
-- Create an issue in the repository
-- Check the documentation in `specs/001-build-flux-sight/`
-- Review the quickstart guide
-
-## Roadmap
-
-- [ ] WebSocket subscriptions for real-time updates
-- [ ] Additional DEX protocol support
-- [ ] Advanced analytics and reporting
-- [ ] GraphQL federation support
-- [ ] Horizontal scaling capabilities
-- [ ] Advanced caching strategies
+For questions or issues, please contact the development team.

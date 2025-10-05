@@ -1,28 +1,22 @@
-import { createConfig } from '@ponder/core';
+import { createConfig, factory } from "ponder";
+import { UniswapV3PoolAbi } from "./abis/UniswapV3PoolAbi";
+import { UniswapV3FactoryAbi } from "./abis/UniswapV3FactoryAbi";
+import { getAbiItem } from "viem";
 
 export default createConfig({
-  networks: {
-    mainnet: {
-      chainId: 1,
-      rpc: process.env.ETHEREUM_RPC_URL || 'https://eth-mainnet.g.alchemy.com/v2/demo',
-      pollingInterval: 1000,
-    },
+  chains: {
+    mainnet: { id: 1, rpc: process.env.PONDER_RPC_URL_1 },
   },
   contracts: {
-    UniswapV3Factory: {
-      network: 'mainnet',
-      address: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
-      abi: './abis/UniswapV3Factory.json',
-      startBlock: parseInt(process.env.START_BLOCK || '12369621'),
-    },
     UniswapV3Pool: {
-      network: 'mainnet',
-      abi: './abis/UniswapV3Pool.json',
-      factory: {
-        address: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
-        event: 'PoolCreated',
-        parameter: 'pool',
-      },
+      chain: "mainnet",
+      abi: UniswapV3PoolAbi,
+      address: factory({
+        address: "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+        event: getAbiItem({ abi: UniswapV3FactoryAbi, name: "PoolCreated" }),
+        parameter: "pool",
+      }),
+      startBlock: 12369621,
     },
   },
 });
