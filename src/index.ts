@@ -69,8 +69,8 @@ ponder.on("UniswapV3Pool:Swap", async ({ event, context }) => {
     }),
   ]);
 
-  // Get token names with error handling
-  const [tokenName0, tokenName1] = await Promise.allSettled([
+  // Get token names and symbols with error handling
+  const [tokenName0, tokenName1, tokenSymbol0, tokenSymbol1] = await Promise.allSettled([
     context.client.readContract({
       abi: ERC20Abi,
       functionName: "name",
@@ -81,9 +81,21 @@ ponder.on("UniswapV3Pool:Swap", async ({ event, context }) => {
       functionName: "name",
       address: token1,
     }),
+    context.client.readContract({
+      abi: ERC20Abi,
+      functionName: "symbol",
+      address: token0,
+    }),
+    context.client.readContract({
+      abi: ERC20Abi,
+      functionName: "symbol",
+      address: token1,
+    }),
   ]).then((results) => [
     results[0].status === "fulfilled" ? results[0].value : "Unknown Token",
     results[1].status === "fulfilled" ? results[1].value : "Unknown Token",
+    results[2].status === "fulfilled" ? results[2].value : "UNKNOWN",
+    results[3].status === "fulfilled" ? results[3].value : "UNKNOWN",
   ]);
 
   await context.db.insert(schema.swap).values({
@@ -97,6 +109,9 @@ ponder.on("UniswapV3Pool:Swap", async ({ event, context }) => {
     tick: BigInt(event.args.tick),
     tokenName0,
     tokenName1,
+    tokenSymbol0,
+    tokenSymbol1,
+    transactionHash: event.transaction.hash,
   });
 });
 

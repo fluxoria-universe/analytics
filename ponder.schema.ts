@@ -21,4 +21,7 @@ export const swap = onchainTable("swap", (t) => ({
   tick: t.bigint(),
   tokenName0: t.text(),
   tokenName1: t.text(),
+  tokenSymbol0: t.text(),
+  tokenSymbol1: t.text(),
+  transactionHash: t.hex().notNull(),
 }));
