@@ -18,13 +18,18 @@ analytics/
 │   └── UniswapV3PoolAbi.ts       # Uniswap V3 Pool ABI
 ├── generated/                     # Generated files
 │   └── schema.graphql            # Generated GraphQL schema
+├── node_modules/                  # Node.js dependencies
 ├── src/
 │   ├── api/
 │   │   └── index.ts              # API server configuration
 │   └── index.ts                  # Main event handlers
+├── package.json                   # Project dependencies and scripts
+├── package-lock.json             # Lock file for dependencies
 ├── ponder.config.ts              # Ponder configuration
 ├── ponder.schema.ts              # Database schema definition
-└── package.json
+├── ponder-env.d.ts               # Ponder environment type definitions
+├── tsconfig.json                 # TypeScript configuration
+└── README.md                     # Project documentation
 ```
 
 ## Data Model
@@ -48,7 +53,7 @@ The application tracks two main data types:
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/fluxoria-universe/analytics
 cd analytics
 ```
 
