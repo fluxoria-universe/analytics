@@ -1,6 +1,7 @@
 import { createConfig, factory } from "ponder";
 import { UniswapV3PoolAbi } from "./abis/UniswapV3PoolAbi";
 import { UniswapV3FactoryAbi } from "./abis/UniswapV3FactoryAbi";
+import { ERC20Abi } from "./abis/ERC20Abi";
 import { getAbiItem } from "viem";
 
 export default createConfig({
