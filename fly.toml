@@ -1,0 +1,29 @@
+app = "analytics-indexer"
+primary_region = "sjc"
+
+[build]
+
+[env]
+  NODE_ENV = "production"
+  PONDER_RPC_URL_8453 = "https://mainnet.base.org"
+
+[http_service]
+  internal_port = 42069
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256
+
+[checks]
+  [checks.health]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    path = "/health"
+    port = 42069
+    timeout = "5s"

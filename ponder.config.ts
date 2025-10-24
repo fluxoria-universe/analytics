@@ -1,23 +1,16 @@
-import { createConfig, factory } from "ponder";
-import { UniswapV3PoolAbi } from "./abis/UniswapV3PoolAbi";
-import { UniswapV3FactoryAbi } from "./abis/UniswapV3FactoryAbi";
-import { ERC20Abi } from "./abis/ERC20Abi";
-import { getAbiItem } from "viem";
+import { createConfig } from "ponder";
+import { BaseContractAbi } from "./abis/BaseContractAbi";
 
 export default createConfig({
   chains: {
-    mainnet: { id: 1, rpc: process.env.PONDER_RPC_URL_1 },
+    base: { id: 8453, rpc: process.env.PONDER_RPC_URL_8453 },
   },
   contracts: {
-    UniswapV3Pool: {
-      chain: "mainnet",
-      abi: UniswapV3PoolAbi,
-      address: factory({
-        address: "0x1F98431c8aD98523631AE4a59f267346ea31F984",
-        event: getAbiItem({ abi: UniswapV3FactoryAbi, name: "PoolCreated" }),
-        parameter: "pool",
-      }),
-      startBlock: 23000000,
+    BaseContract: {
+      chain: "base",
+      abi: BaseContractAbi,
+      address: "0xb9b05ac285bc1598c20ec99cb29d214875c004e4",
+      startBlock: 37244000, 
     },
   },
 });
